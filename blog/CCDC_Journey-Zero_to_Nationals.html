@@ -59,6 +59,7 @@
 							<header>
 								<h2 style="text-align: center;">CCDC Journey - Zero to Nationals</h2>
 								<div style="text-align: center;">Jul 25, 2024</div>
+								<p style="text-align: center;">My 2023-2024 CCDC experience</p>
 							</header>
 						</div>
 					</section>
@@ -203,7 +204,7 @@
 
 							<h3>The Competition</h3>
 							<p>
-								Once the competition started, I immediately fired off my one-liner to patch the IOT machine and started RDP’ing into the Domain Controller. I notice that the exploit failed, and noted that it’s probably a different version of Windows IOT than what I was expecting. I start running minute-zero scripts while also going into the settings of the DC to change the language to English. To my surprise, the button to install the English language pack was non-existent. Only a couple of minutes into the competition, I learn that I will have to compete with an Italian DC for 8 hours straight.
+								Once the competition started, I immediately fired off my one-liner to patch the IOT machine and started RDP’ing into the Domain Controller. I notice that the exploit failed, and noted that it’s probably a different version of Windows IOT than what I was expecting. I start running minute-zero scripts while also going into the settings of the DC to change the language to English. To my surprise, the button to install the English language pack was non-existent. Only a couple of minutes into the competition, I learned that I will have to compete with an Italian DC for 8 hours straight.
 							</p>
 							<p>
 								Fortunate for me, I did most of my work in PowerShell, which was in English and actually usable. I was able to get a WinRM session to all of the Windows machines except for the Windows IOT, so for that I decided to just use SSH which was pre-installed for us. I was able to go through my playbook pretty smoothly, but one thing that was bothering me was the web interface on the Windows IOT box. When I first accessed it, I saw a login form and thought it was the web portal for managing the device I learned about beforehand, so I logged in with known credentials. Upon “logging in”, you are greeted with some weird interface with the default credentials in plaintext. However, I later found out that the login form is fake, and there is no authentication taking place. You could edit the plaintext credentials and hit “save”, but it would randomly revert to the original. Since we already rotated credentials throughout the network, I stopped looking into this because there were more important things to take care of.
@@ -275,7 +276,7 @@
 
 							<h3>Results</h3>
 							<p>
-								The awards ceremony was the next day, so we to get through an entire night of not knowing our placements. Once we got to the ceremony, we were welcomed with some pretty good catered food, and then some announcements. There were 4 awards given out for best in each point category, and our team won Best in Customer Service. This was all thanks to our corporate team member who took care of the calls with Orange Team and did an amazing job! Now, for the moment of truth... 2nd Place!
+								The awards ceremony was the next day, so we had to get through an entire night of not knowing our placements. Once we got to the ceremony, we were welcomed with some pretty good catered food, and then some announcements. There were 4 awards given out for best in each point category, and our team won Best in Customer Service. This was all thanks to our corporate team member who did an amazing job taking care of Orange Team requests. Now, for the moment of truth... 2nd Place!
 							</p>
 							<div>
 								<img src="images/CCDC_Journey-Zero_to_Nationals/regionals_scores.jpg" width="50%" height="50%">
@@ -298,7 +299,7 @@
 								As mentioned before, NCCDC hosts a Wildcard event to give 2nd place teams in each region a chance to compete for a spot at Nationals. Since Western Regionals were held the latest out of all regions, we had the least amount of time to prepare for this: a mere 2 days, compared to other teams having weeks. The Wildcard event’s main component is CyberPatriot-styled, so our Hivestorm experience, and of course, our 3x CyberPatriot National Champion’s years of wisdom, would be invaluable. 
 							</p>
 							<p>
-								We spent as much time as we could after the WRCCDC awards ceremony, the whole day after, and the time before the competition started the next day to prepare. With more machines to compete on, a separate CTF component, and 8 team members competing instead of 4, we had to prepare a bit differently for this competition than Hivestorm. Despite the differences and lack of time, we were able to make very good use of our 2 days and felt ready to win.
+								We spent as much time as we could after the WRCCDC awards ceremony, the whole day after, and the time before the competition started the next day to prepare. With more machines to secure, a separate CTF component, and 8 team members competing instead of 4, we had to prepare a bit differently for this competition than Hivestorm. Despite the differences and lack of time, we were able to make very good use of our 2 days and felt ready to win.
 							</p>
 							<p>
 								As the Windows Lead, I worked on 2 Windows VMs for a majority of the competition, trying to get as many points as I could in the relatively short amount of time to compete. There was one machine that was much harder than the one I worked on in Hivestorm, and one that was much easier. I followed a very familiar process to score us a good amount of points, and used some knowledge from CCDC training to find some extra hidden points. Everyone did great, and we were able to secure ourselves a spot at Nationals!
@@ -318,7 +319,45 @@
 							</header>
 
 							<p>
-								Hello
+								Making it to Nationals was something I didn’t even consider when I started out less than a year before this moment, but here I was, surrounded by my amazing team ready to fly over to San Antonio, Texas for NCCDC 2024. As for preparation, we didn’t do much. This was due to a combination of there only being two weeks, being burnt out, and many people telling us WRCCDC was WAY harder than NCCDC and us having nothing to worry about. So we went in with very little Nationals-specific preparation and just tried our best to adapt.
+							</p>
+							<div>
+								<img src="images/CCDC_Journey-Zero_to_Nationals/nats_banner.png" width="50%" height="50%">
+							</div>
+
+							<h3>Day 1</h3>
+							<p>
+								Similar to Regionals, we started by provisioning laptops. This time, there weren’t any servers with nice peripherals like from Regionals, so I was assigned one of the nicer Windows laptops. Thankfully, we are allowed to bring in some of our own peripherals for Nationals, so I brought my own mouse to avoid using a trackpad. Once we got started, we were annoyed by how restrictive the internet proxy was at Nationals. We had to take extra steps to get around certificate issues, and were only allowed to visit whitelisted websites. Even though we knew about this in advance, we were not expecting it to block us from every other link we clicked on while doing research.
+							</p>
+							<p>
+								As for the Windows Servers I had to manage, there were more than double than the number from Regionals. This meant making use of Windows Remote Management would be essential, allowing me to run commands on 10+ servers at a time. The sheer number of servers I had to manage became overwhelming because it was hard to enumerate all of the machines thoroughly. Most of the technologies deployed were familiar to me, but there were many more databases than what I was used to, which added on to the already hard enumeration task.
+							</p>
+							<p>
+								There was one inject that came in very early into the competition involving DNS that took away a lot of my time (and my sanity). It involved making a serious change to the active DNS server which was being used by scored services and our own laptops. This inject was especially frustrating because even after we got most of it figured out, and all of our tests were passing, pushing the changes resulted in DNS breaking completely. After over an hour of debugging, we eventually had to give up the inject completely, meaning no points for the inject, over an hour of precious time gone, and a lot of demotivation. The time lost was even worse since the first few hours of competition are most important for getting a good idea of the network and developing defenses against Red Team. While I was working on that inject, Red Team was probably establishing persistence in 8 more different ways. We will never find out how this competition would’ve went for us without that DNS inject, and this will probably haunt me for at least a few more years.
+							</p>
+							<p>
+								The rest of day 1 went mostly smoothly. There was one service that kept going down and back up randomly on the Windows side that took me a while to figure out, but it was a simple authentication issue that I overlooked. As for Red Team artifacts, I saw a lot of suspicious processes, system logs, and network connections towards the end of the day. I really wish I had more time to look into these, but the competition ended shortly after. What made NCCDC’s Red Team different from others was persistent malware that continuously took down defenses to get themselves back in. I did a lot of planning that night to deal with Red Team the next day.
+							</p>
+
+							<h3>Day 2</h3>
+							<p>
+								Day 2 for me was all about fighting Red Team. I started making aggressive changes to the Windows machines in an attempt to get rid of Red Team completely, and they reacted by making aggressive changes to make my green services red. Because our Linux subteam did such a good job, all 3 of the Red Teamers assigned to attack our team were focused only on Windows. I tried so many different things to get them out and remove their malware, but their foothold on our systems were too strong, and I could not get rid of them. At one point, I realized that they had code periodically taking down my firewalls. To counter this, I wrote a short PowerShell script which used an infinite loop to turn the firewall on and remove their custom rules. The Red Team countered this by writing an infinite loop of their own to turn my firewall off. When I was trying to change domain user passwords, I noticed that they had deleted some of my tools I had saved on disk, so I had to redownload them from GitHub. Later, they even started RDP’ing into the machine I was working on as the same user, effectively kicking me out, so I created another admin user and locked the account they were using. After all of this chaos, we decided to revert most of the machines with services down, one at a time, and harden them as fast as possible. This was time consuming, but it worked, and I was eventually able to get all of the services back up.
+							</p>
+							<p>
+								After all of this chaos, we spent the rest of the competition in peace, trying to solve some of the challenges given as a chance to gain extra points. The only information we got for these challenges was the name of the challenge and a light on a custom scoreboard to tell us if we solved it or not. We did a lot of speculating on what they were asking of us, but weren’t able to figure any of them out. Once the competition ended, I remember leaving that room feeling defeated and full of regret for not preparing harder.
+							</p>
+
+							<h3>Results</h3>
+							<p>
+								We went to the award ceremony to watch the top 3 teams get awarded. Congratulations again to UCF, CPP, and UT Austin! &#127881;
+							</p>
+							As for us, we got an email a few weeks later informing us of getting 4th place, then another one with a detailed scorecard.
+							<div>
+								<img src="images/CCDC_Journey-Zero_to_Nationals/nats_placement.png" width="50%" height="50%">
+							</div>
+
+							<p>
+								Although we did not place top 3, we had a lot of fun and learned so much. I would not have asked for a better team to compete with for my CCDC Journey. Special thanks to everyone who supported our team throughout the year with encouragement, insights, and hardware. Thank you to all CCDC organizers as well, who keep the competition fresh and interesting every year.
 							</p>
 
 						</div>
