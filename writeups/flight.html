@@ -1,0 +1,142 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Flight</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
+								<li><a href="#lessons" id="sec4-link"><span>Lessons Learned</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/hard.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Flight</h2>
+							<div style="text-align: center;">Published: Feb 17, 2025</div>
+							<div style="text-align: center;"><img src="images/flight/flight.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							
+							<header>
+								<h2>Enumeration</h2>
+							</header>
+
+							<img src="images/flight/enu1.png">
+							<p>
+								Upon visiting http[:]//flight.htb, none of the buttons seem to do anything.
+								Let's further enumerate by looking for subdomains.
+							</p>
+							<img src="images/flight/enu2.png">
+							<pre><code>file_get_contents("C:\\xampp\\htdocs\\school.flight.htb\\home.html");</code></pre>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Foothold</h2>
+							</header>
+
+							<p>
+								Hello
+							</p>
+
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Privilege Escalation</h2>
+							</header>
+
+							<p>
+								Hello
+							</p>
+
+						</div>
+					</section>
+
+					<section id="lessons" class="two">
+						<div class="container">
+							<h3>Lessons learned:</h3>
+							<ul>
+								<li>Responder practice (RFI → ask for attacker’s SMB share & generating malicious desktop.ini</li>
+								<li>RunasCs.exe to execute commands as another user (and getting a shell as them)</li>
+								<li>Reverse port forwarding practice</li>
+								<li>Using Rubeus to craft ourselves a ticket, then using it after fixing clock skew</li>
+							</ul>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
