@@ -1,0 +1,170 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Blog | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">OSCP vs CRTO</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#background" id="sec1-link"><span>My Background</span></a></li>
+								<li><a href="#pricing" id="sec2-link"><span>Pricing</span></a></li>
+								<li><a href="#course_and_labs" id="sec3-link"><span>Course & Labs</span></a></li>
+								<li><a href="#exam" id="sec4-link"><span>Exam</span></a></li>
+								<li><a href="#final_thoughts" id="sec5-link"><span>Final Thoughts</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+					<section id="top" class="one dark" style="background-image: url('images/OSCP_vs_CRTO/orange_sky.jpg');">
+						<div class="container">
+							<header>
+								<h2 style="text-align: center;">OSCP vs CRTO</h2>
+								<div style="text-align: center;">Mar 4, 2025</div>
+								<p style="text-align: center;">Comparing two popular ethical hacking certs</p>
+							</header>
+						</div>
+					</section>
+
+				<!-- Content -->
+					<section id="background" class="two">
+						<div class="container">
+
+							<header>
+								<h2>My Background</h2>
+							</header>
+
+							<p>
+                                I obtained the OffSec Certified Professional (OSCP) and Certified Red Team Operator (CRTO) after graduating from university as a way to build up industry skills and increase my chances of landing a job in offensive security. I had been studying cybersecurity for about a year before the OSCP and about a year and a half before the CRTO. I decided to write this blog post to share my experiences and compare the two.
+                            </p>
+
+						</div>
+					</section>
+
+					<section id="pricing" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Pricing</h2>
+							</header>
+
+                            <p>
+                                For the OSCP, I got the most popular “Course & Cert Exam Bundle” which was priced $1649 at the time. For the CRTO, I got the “Course + 60 Days” option which costed £445.00 (approx. $560). Some people choose to get just enough lab access after they finish the course, but I found it helpful to have access to both simultaneously because I wanted to get more practice with Cobalt Strike (more on this below).
+                            </p>
+							<p>
+                                I think what might justify the price of the OSCP is the amount of industry recognition it gets, which I think is a little excessive. While searching for offensive security roles, I feel that the OSCP was mentioned in almost every other job posting, while the CRTO was only mentioned in a handful. Without taking this into consideration, the CRTO wins by a long shot in the “bang for your buck” category.
+                            </p>
+
+						</div>
+					</section>
+
+					<section id="course_and_labs" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Course & Labs</h2>
+							</header>
+
+							<p>
+                                Both the OSCP and CRTO courses are well-structured and provide hands-on learning experiences, but they focus on different areas of offensive security.
+                            </p>
+                            <p>
+                                The OSCP course covers fundamental Penetration Testing topics using Kali Linux. A standout feature of the OSCP is its CTF-style practice labs per topic, which require you to apply what you've learned in slightly different ways, reinforcing concepts through problem-solving. Additionally, the OSCP includes challenge labs, which are large, mock environments for practical attack simulations. To get additional practice, I recommend <a href="https://www.hackthebox.com/hacker/hacking-labs">Hack The Box (HTB) labs</a> as a supplemental resource.
+                            </p>
+                            <p>
+                                The CRTO course, on the other hand, focuses on Red Teaming, particularly in an Active Directory environment with many misconfigurations. Unlike OSCP’s CTF-style approach, CRTO provides a sandbox-style lab where everything from the course material works exactly the same in the lab. The biggest advantage of the CRTO is the hands-on experience with Cobalt Strike, a powerful and expensive Command and Control (C2) framework. To maximize this learning opportunity, I highly recommend supplementing the course with <a href="https://www.youtube.com/playlist?list=PLcjpg2ik7YT6H5l9Jx-1ooRYpfvznAInJ">this 9-part video series</a> on Cobalt Strike by the creator, Raphael Mudge.
+                            </p>
+
+						</div>
+					</section>
+
+					<section id="exam" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Exam</h2>
+							</header>
+
+							<p>
+                                The exam experience for these certifications are completely different, so I will go over some key points.
+                            </p>
+                            <p>
+                                The OSCP involves 24 hours of penetration testing 3 standalone machines and 3 grouped Active Directory machines, followed by a full report that is due in another 24 hours. This style of exam is what makes OffSec certifications stand out. It can be intimidating, but the exams are designed to be doable with lots of breaks and sleep. The CRTO involves a 4-day exam with 48 hours of free-to-use lab time to find a total of 8 flags (6 to pass). I found this to be a much more chill experience because you are free to take much longer breaks while still having plenty of time to complete the exam. It also gives you time to practice techniques like persistence which aren’t necessary to pass the exam.
+                            </p>
+                            <p>
+                                As for the course vs exam difficulty, I would say you might need a little more practice than just the course for the OSCP, but just the course will suffice for the CRTO. If you have prior experience with penetration testing (e.g. HTB or real world), you should be chilling for the OSCP. If not, I would recommend being comfortable with the easier “Easy” rated HTB machines. For the CRTO, you should just be chilling if you paid attention during the course and got some practice using Cobalt Strike with Defender enabled.
+                            </p>
+
+						</div>
+					</section>
+
+					<section id="final_thoughts" class="two">
+						<div class="container">
+
+							<header>
+								<h2>Final Thoughts</h2>
+							</header>
+
+							<p>
+                                Overall, I think both certifications are great for people relatively new to cybersecurity with an interest in the offensive side. I hope this post helps any of you considering tackling the OSCP, CRTO, or both. Feel free to reach out if you have any questions!
+                            </p>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
