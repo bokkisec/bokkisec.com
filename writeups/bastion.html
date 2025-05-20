@@ -1,0 +1,192 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Writeups | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">Bastion</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
+								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
+								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+				<section id="top" class="one dark" style="background-image: url('images/easy.jpg')">
+					<div class="container">
+						<header>
+							<h2 style="text-align: center;">Bastion</h2>
+							<div style="text-align: center;">Published: May 19, 2025</div>
+							<div style="text-align: center;"><img src="images/bastion/bastion.png"></div>
+						</header>
+					</div>
+				</section>
+
+				<!-- Content -->
+					<section id="enu" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
+
+								<h3>Scan</h3>
+								<p>
+									Starting off by scanning with <code>rustscan</code> and <code>nmap</code>
+									<pre>TARGET=10.10.10.134; rustscan -r 1-65535 --scripts none -a $TARGET | tee scans/fast.rustscan | grep '\->' | awk -F'[' '{print $2}' | sed 's/]//' | read PORTS; nmap -sC -sV -oN scans/detailed.nmap -p $PORTS $TARGET</pre>
+									<img src="images/bastion/enu1.png">
+								</p>
+
+								<h3>SMB</h3>
+								<p>
+									Looking at SMB with guest authentication, we find a “Backups” share that we can read and write to:
+									<pre>nxc smb 10.10.10.134 -u 'something' -p 'something' --shares</pre>
+									<img src="images/bastion/enu2.png">
+								</p>
+								<p>
+									We can explore the share using <code>smbclient</code>
+									<pre>smbclient -U 'a%a' //10.10.10.134/Backups</pre>
+									<img src="images/bastion/enu3.png">
+								</p>
+								<p>
+									After some looking around, we find what looks to be a backup of L4mpje’s PC. The <code>.vhd</code> files are especially interesting.
+									<img src="images/bastion/enu4.png">
+								</p>
+
+								<h3>Virtual Hard Disk file</h3>
+								<p>
+									Let's switch over to a Windows VM to take a look at the backup virtual hard disk.<br>
+									Steps: <code>Win + R</code> > Type “\\10.10.10.134\Backups” to connect to the share > Navigate to the backup > Right click the larger <code>.vhd</code> file > Mount
+									<img src="images/bastion/enu5.png">
+								</p>
+								<p>
+									Now the backup is mounted as the E drive on my VM, and we can take a look around.
+									<img src="images/bastion/enu6.png">
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<section id="foothold" class="two">
+						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
+
+								<h3>Credential Dump</h3>
+								<p>
+									After taking a look around the backup filesystem, there isn't anything that stands out, so let's proceed to dump the hashes stored in the SAM database file. 
+									To do this, navigate to <code>E:\Windows\System32\config</code>, then grab the <code>SAM</code> and <code>SYSTEM</code> files.
+									<img src="images/bastion/foo1.png">
+								</p>
+								<p>
+									Now, I will move these files to my kali box to dump the NTLM hashes using Impacket’s <code>secretsdump</code>
+									<pre>impacket-secretsdump -sam SAM -system SYSTEM LOCAL</pre>
+									<img src="images/bastion/foo2.png">
+								</p>
+								<p>
+									Note that the Administrator and Guest have empty passwords (<code>31d6...</code>). Let’s try to crack L4mpje’s password using CrackStation:
+									<img src="images/bastion/foo3.png">
+								</p>
+								<p>
+									From our initial scans, we know that SSH is on the box, so let’s get logged in with <code>L4mpje:bureaulampje</code> and get <code>user.txt</code>!
+									<img src="images/bastion/foo4.png">
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<section id="privesc" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
+
+								<h3>Enumeration</h3>
+								<p>
+									With some basic enumeration, we find out that “mRemoteNG” is installed on this machine, which is a remote management tool.
+									<img src="images/bastion/pe1.png">
+								</p>
+
+								<h3>mRemoteNG Credential Theft</h3>
+								<p>
+									With some googling, we can find tools for decrypting the passwords stored by this tool. I will be using this one:<br>
+									<a href="https://github.com/kmahyyg/mremoteng-decrypt">https://github.com/kmahyyg/mremoteng-decrypt</a><br>
+									First, grab the base64 encoded string found in <code>C:\Users\L4mpje\AppData\Roaming\mRemoteNG\confCons.xml</code> for an RDP connection with the “Administrator” user:
+									<img src="images/bastion/pe2.png">
+								</p>
+								<p>
+									Then, decrypt it using the github tool:
+									<pre>python3 mremoteng_decrypt.py -s &lt;b64 string></pre>
+									<img src="images/bastion/pe3.png">
+								</p>
+								<p>
+									Now we can SSH in as the Administrator (with password <code>thXLHM96BeKL0ER2</code>) and get <code>root.txt</code>!
+									<img src="images/bastion/pe4.png">
+								</p>
+							</div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
