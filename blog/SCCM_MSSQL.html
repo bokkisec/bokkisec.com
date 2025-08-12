@@ -1,0 +1,300 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Blog | bokkisec</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="icon" href="/images/bokkisec.png" type="image/png">
+	</head>
+	<body class="is-preload">
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<!-- <span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span> -->
+							<a href="https://bokkisec.com"><span class="icon solid fa-home"></span>bokkisec</a>
+							<p style="padding-bottom: 10px;"></p>
+							<a href=""><h1 id="title">SCCM Control via MSSQL</h1></a>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a href="#1" id="sec1-link"><span>Introduction</span></a></li>
+								<li><a href="#2" id="sec2-link"><span>Getting sysadmin in MSSQL</span></a></li>
+								<li><a href="#3" id="sec3-link"><span>SCCM Admin Impersonation</span></a></li>
+								<li><a href="#4" id="sec4-link"><span>PowerShell Across Collections</span></a></li>
+								<li><a href="#5" id="sec5-link"><span>Extra Enumeration</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+						<ul class="icons">
+							<li><a href="mailto:joshchung02@gmail.com" class="icon fa-envelope"><span class="label">Email</span></a></li>
+							<li><a href="https://www.linkedin.com/in/joshchung02/" class="icon brands fa-linkedin" target="_blank"><span class="label">LinkedIn</span></a></li>
+							<li><a href="https://github.com/bokkisec" class="icon brands fa-github" target="_blank"><span class="label">GitHub</span></a></li>
+							<li><a href="https://twitter.com/bokkisec" class="icon brands fa-twitter" target="_blank"><span class="label">Twitter</span></a></li>
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+					<section id="top" class="one dark" style="background-image: url('images/backgrounds/sky.jpg');">
+						<div class="container">
+							<header>
+								<h2 style="text-align: center;">SCCM Control via MSSQL</h2>
+								<div style="text-align: center;">Coming soon...</div>
+								<p style="text-align: center;">Abusing the site database to control the environment</p>
+							</header>
+						</div>
+					</section>
+
+				<!-- Content -->
+					<section id="1" class="two">
+						<div class="container">
+                            <div class="content">
+
+                                <header>
+                                    <h2>Introduction</h2>
+                                </header>
+
+                                <p>
+                                    SCCM (System Center Configuration Manager), or MECM (Microsoft Endpoint Configuration Manager),
+                                    is system administration software that can be abused by attackers if not properly secured.
+                                    The site database uses MSSQL to store configuration data and facilitate communication between devices.
+                                    This makes the site database one of the primary targets for attackers.
+                                    If you are curious about SCCM and the different attack paths, check out
+                                    <a href="https://github.com/subat0mik/Misconfiguration-Manager">Misconfiguration Manager</a>
+                                    and consider setting up a lab using
+                                    <a href="https://docs.ludus.cloud/docs/environment-guides/sccm/">Ludus</a>.
+                                </p>
+
+                                <h3>Original tool</h3>
+                                <p>
+                                    <a href="https://github.com/synacktiv/sccmsqlclient">https://github.com/synacktiv/sccmsqlclient</a><br>
+                                    "A dedicated MSSQL client for SCCM database exploration and exploitation."
+                                    This tool by Synacktiv builds on top of Impacket's MSSQL client to provide prebuilt queries to interact with SCCM through the site database.
+                                </p>
+
+                                <h3>Extended tool</h3>
+                                <p>
+                                    <a href="https://github.com/bokkisec/sccmsqlclient">https://github.com/bokkisec/sccmsqlclient</a><br>
+                                    In this fork, I explored different ways to extend the functionality of the tool by adding additional commands.
+                                    The goal of this blog is to share what I came up with and show how powerful a direct connection to the site database can be.
+                                </p>
+                            </div>
+						</div>
+					</section>
+
+					<section id="2" class="two">
+						<div class="container">
+                            <div class="content">
+
+                                <header>
+                                    <h2>Getting sysadmin in MSSQL</h2>
+                                </header>
+
+                                <p>
+                                    Before using the tool, you're going to need to get sysadmin privileges on the site database.
+                                </p>
+
+                                <h3>
+                                    Slightly modified TAKEOVER-1
+                                </h3>
+                                <p>
+                                    <a href="https://github.com/subat0mik/Misconfiguration-Manager/blob/main/attack-techniques/TAKEOVER/TAKEOVER-1/takeover-1_description.md">TAKEOVER-1</a>
+                                    is often used to get "Full Administrator" in SCCM.
+                                    It works by relaying authentication of a privileged machine, such as the site server, to the site database.
+                                    The same technique can be used to grant ourselves sysadmin on the database.
+                                </p>
+                                <p>
+                                    To do this, simply change the query used by <code>ntlmrelayx</code> to this one:
+                                    <pre>CREATE LOGIN [domain\username] FROM WINDOWS; ALTER SERVER ROLE sysadmin ADD MEMBER [domain\username];</pre>
+                                </p>
+                                <p>
+                                    Then, proceed with the attack.
+                                    <img src="images/SCCM_MSSQL/Privesc/relay-to-sysadmin.png">
+                                </p>
+                                <p>
+                                    Now we have sysadmin privileges!<br>
+                                    <img src="images/SCCM_MSSQL/Privesc/domainuser-sysadmin.png" style="width: 50%;">
+                                </p>
+                                <p>
+                                    Here is an example of connecting to the site database with the tool and executing the <code>sccm_devices</code> command:
+                                    <pre>python3 sccmsqlclient.py -windows-auth ludus.domain/domainuser:password@10.2.10.13</pre>
+                                    <img src="images/SCCM_MSSQL/example-run.png">
+                                </p>
+                            </div>
+						</div>
+					</section>
+
+					<section id="3" class="two">
+						<div class="container">
+                            <div class="content">
+                                <header>
+                                    <h2>SCCM Admin Impersonation</h2>
+                                </header>
+
+                                <p>
+                                    SCCM has a number of admin roles that can be assigned to domain users.
+                                    The most interesting one for attackers is "Full Administrator" since it grants all available permissions.
+                                    The admin list and their permissions are stored in the site database.
+                                </p>
+
+                                <h3>Tables</h3>
+                                <p>
+                                    The <code>RBAC_Admins</code> table stores the list of admins, with the most interesting columns being:
+                                    <ul>
+                                        <li><code>AdminID</code> - Primary key for the table, starting at 16777217 and incrementing by 1 for each additional entry</li>
+                                        <li><code>AdminSID</code> - The Windows SID for the user, which is used in the authentiation process</li>
+                                        <li><code>LogonName</code> - The name that is used to log in and shown in the Configuration Manager GUI</li>
+                                    </ul>
+                                    <pre>SELECT * FROM RBAC_Admins;</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/default-admins-mssql.png">
+                                </p>
+                                <p>
+                                    The <code>RBAC_ExtendedPermissions</code> table stores the permissions that each admin is given.
+                                    The <code>RoleID</code> of "SMS0001R" corresponds to "Full Administrator" and the scope columns determine which users/devices they can control.
+                                    <pre>SELECT * FROM RBAC_ExtendedPermissions</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/default-admins-perms.png" style="width: 30%">
+                                </p>
+                                
+                                <h3>Starting Point</h3>
+                                <p>
+                                    For the following demonstration, refer to these encoded SIDs:
+                                    <ul>
+                                        <li>0x01050...51040000 - domainadmin</li>
+                                        <li>0x01050...42060000 - itadmin</li>
+                                        <li>0x01050...50040000 - domainuser (our user)</li>
+                                    </ul>
+                                </p>
+                                <p>
+                                    The user used to deploy SCCM was <code>ludus\domainadmin</code>, so it has an <code>AdminID</code> of 16777217 and is a "Full Administrator".
+                                    Also, <code>ludus\itadmin</code> was added as a "Application Administrator".<br>
+                                    <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
+                                    <img src="images/SCCM_MSSQL/Admins/itadmin-sql.png">
+                                </p>
+
+                                <h3>Impersonation</h3>
+                                <p>
+                                    Since the <code>AdminSID</code> column is used to authenticate users, we can insert our own SID to impersonate admins.
+                                    This gives us some options to be creative when establishing persistence.
+                                    The following are the commands I added to <code>sccmsqlclient</code> to allow for this.<br>
+                                </p>
+                                
+                                <h4><code style="background-color:lightblue;">sccm_impersonate_safe_targ</code></h4>
+                                <p>
+                                    A duplicate entry of the target admin is created. 
+                                    Then, the <code>AdminSID</code> is changed to the SID of your user.
+                                    After executing the command, in the GUI, there are two entries for <code>ludus\itadmin</code>.
+                                    Now, both <code>ludus\itadmin</code> and <code>ludus\domainuser</code> has "Application Administrator" rights.
+                                    <pre>sccm_impersonate_safe_targ ludus\domainuser ludus\itadmin</pre>
+
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-safe-targ.png" style="width: 50%">
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-safe-targ-sql.png">
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">sccm_impersonate_safe_full</code></h4>
+                                <p>
+                                    A duplicate entry of the default "Full Administrator" is created (targets <code>AdminID</code> 16777217).
+                                    The rest works the same as the previous, except the targeted user is <code>ludus\domainadmin</code> who is "Full Administrator".
+                                    <pre>sccm_impersonate_safe_full ludus\domainuser</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-safe-full.png" style="width: 50%">
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-safe-full-sql.png">
+                                </p>
+                                
+                                <h4><code style="background-color:lightblue;">sccm_impersonate_targ</code></h4>
+                                <p>
+                                    The <code>AdminSID</code> is <b>DIRECTLY OVERWRITTEN</b> with the SID of your user.
+                                    After executing the command, there is no observable change to the GUI.
+                                    Now, only <code>ludus\domainuser</code> has "Application Administrator" rights.
+                                    <code>ludus\itadmin</code> no longer has any permissions in SCCM.<br>
+                                    Note: See below for restoration commands.
+                                    <pre>sccm_impersonate_targ ludus\domainuser ludus\itadmin</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-targ-sql.png">
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">sccm_impersonate_full</code></h4>
+                                <p>
+                                    The <code>AdminSID</code> of the default "Full Administrator" is <b>DIRECTLY OVERWRITTEN</b>.
+                                    The rest works the same as the previous, except the targeted user is <code>ludus\domainadmin</code> who is "Full Administrator".<br>
+                                    Note: See below for restoration commands.
+                                    <pre>sccm_impersonate_full ludus\domainuser</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
+                                    <img src="images/SCCM_MSSQL/Admins/impersonate-full-sql.png">
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">sccm_restore_targ</code></h4>
+                                <p>
+                                    Restore the <code>AdminSID</code> of the specified user with the specified encoded SID.
+                                    <pre>sccm_restore_targ 0x01050…42060000 ludus\itadmin</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/restore-targ.png">
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">sccm_restore_full</code></h4>
+                                <p>
+                                    Restore the <code>AdminSID</code> of the default "Full Administrator" with the specified encoded SID.
+                                    <pre>sccm_restore_full 0x01050…51040000</pre>
+                                    <img src="images/SCCM_MSSQL/Admins/restore-full.png">
+                                </p>
+                            </div>
+						</div>
+					</section>
+
+					<section id="4" class="two">
+						<div class="container">
+                            <div class="content">
+                                <header>
+                                    <h2>PowerShell Across Collections</h2>
+                                </header>
+                            </div>
+						</div>
+					</section>
+
+					<section id="5" class="two">
+						<div class="container">
+                            <div class="content">
+                                <header>
+                                    <h2>Extra Enumeration</h2>
+                                </header>
+                            </div>
+						</div>
+					</section>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy; 2025 Joshua Chung</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
