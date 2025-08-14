@@ -57,7 +57,7 @@
 						<div class="container">
 							<header>
 								<h2 style="text-align: center;">SCCM Control via MSSQL</h2>
-								<div style="text-align: center;">Coming soon...</div>
+								<div style="text-align: center;">Aug 14, 2025</div>
 								<p style="text-align: center;">Abusing the site database to control the environment</p>
 							</header>
 						</div>
@@ -184,7 +184,7 @@
                                 </p>
                                 <p>
                                     The user used to deploy SCCM was <code>ludus\domainadmin</code>, so it has an <code>AdminID</code> of 16777217 and is a "Full Administrator".
-                                    Also, <code>ludus\itadmin</code> was added as a "Application Administrator".<br>
+                                    Also, <code>ludus\itadmin</code> was added as an "Application Administrator".<br>
                                     <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
                                     <img src="images/SCCM_MSSQL/Admins/itadmin-sql.png">
                                 </p>
@@ -221,9 +221,8 @@
                                 <p>
                                     The <code>AdminSID</code> is <b>DIRECTLY OVERWRITTEN</b> with the SID of your user.
                                     After executing the command, there is no observable change to the GUI.
-                                    Now, only <code>ludus\domainuser</code> has "Application Administrator" rights.
-                                    <code>ludus\itadmin</code> no longer has any permissions in SCCM.<br>
-                                    Note: See below for restoration commands.
+                                    Now, only <code>ludus\domainuser</code> has "Application Administrator" rights,
+                                    and <code>ludus\itadmin</code> no longer has any permissions in SCCM.
                                     <pre>sccm_impersonate_targ ludus\domainuser ludus\itadmin</pre>
                                     <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
                                     <img src="images/SCCM_MSSQL/Admins/impersonate-targ-sql.png">
@@ -232,8 +231,7 @@
                                 <h4><code style="background-color:lightblue;">sccm_impersonate_full</code></h4>
                                 <p>
                                     The <code>AdminSID</code> of the default "Full Administrator" is <b>DIRECTLY OVERWRITTEN</b>.
-                                    The rest works the same as the previous, except the targeted user is <code>ludus\domainadmin</code> who is "Full Administrator".<br>
-                                    Note: See below for restoration commands.
+                                    The rest works the same as the previous, except the targeted user is <code>ludus\domainadmin</code> who is "Full Administrator".
                                     <pre>sccm_impersonate_full ludus\domainuser</pre>
                                     <img src="images/SCCM_MSSQL/Admins/itadmin.png" style="width: 50%">
                                     <img src="images/SCCM_MSSQL/Admins/impersonate-full-sql.png">
@@ -278,7 +276,7 @@
                                 <h4><code style="background-color:lightblue;">collection_members</code></h4>
                                 <p>
                                     List members of the collection with the specified <code>SiteID</code>.
-                                    <pre>collection_members</pre>
+                                    <pre>collection_members SMSDM003</pre>
                                     <img src="images/SCCM_MSSQL/Collections/collection_members.png" style="width: 50%;">
                                 </p>
 
@@ -316,7 +314,7 @@ collection_run_script SMSDM003</pre>
                                 </header>
 
                                 <p>
-                                    This blog only covers the highlights of my research.
+                                    This blog only covers the highlights of my research done as an intern with SpecterOps.
                                     I encourage you to try out the
                                     <a href="https://github.com/bokkisec/sccmsqlclient">tool</a>
                                     for yourself to see all of the commands by the original developer along with a few others I wrote,
